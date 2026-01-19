@@ -51,4 +51,8 @@ Route::middleware('auth:sanctum')->group(function () {
     //screening log
     Route::get('/screening-logs', [App\Http\Controllers\Api\ScreeningLogController::class, 'index']);
     Route::post('/screening-logs', [App\Http\Controllers\Api\ScreeningLogController::class, 'store']);
+
+    //user related
+    Route::get('/company-users', [App\Http\Controllers\Api\UserController::class, 'allCompanyUsers']);
+    Route::post('/users', [App\Http\Controllers\Api\UserController::class, 'store']);
 });
