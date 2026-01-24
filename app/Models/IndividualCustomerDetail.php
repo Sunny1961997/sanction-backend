@@ -40,6 +40,9 @@ class IndividualCustomerDetail extends Model
         'issuing_country',
         'id_issue_date',
         'id_expiry_date',
+        'expected_no_of_transactions',
+        'expected_volume',
+        'mode_of_approach'
     ];
 
     public function customer()

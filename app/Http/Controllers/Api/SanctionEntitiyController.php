@@ -47,7 +47,7 @@ class SanctionEntitiyController extends Controller
             $sources = is_array($sourceInput) ? $sourceInput : [$sourceInput];
             $sources = array_values(array_filter(array_map('trim', $sources)));
             if (!empty($sources)) {
-                $quoted = array_map(fn ($s) => '"' . addslashes($s) . '"', $sources);
+                $quoted = array_map(fn($s) => '"' . addslashes($s) . '"', $sources);
                 $filters[] = 'source IN [' . implode(',', $quoted) . ']';
             }
         }
@@ -114,7 +114,7 @@ class SanctionEntitiyController extends Controller
                 'nationality' => $row->nationality,
                 'address' => $row->address,
                 'confidence' => round($total, 2),
-                'breakdown' => array_map(fn ($v) => round($v, 2), $scoreParts),
+                'breakdown' => array_map(fn($v) => round($v, 2), $scoreParts),
                 '_source_priority' => $priority,
             ];
         });
@@ -127,7 +127,7 @@ class SanctionEntitiyController extends Controller
         })->values();
 
         $filtered = $sorted->filter(function ($item) use ($confidenceRating) {
-            return ($item['confidence'] ?? 0) >= $confidenceRating;
+            return ($item['confidence'] ?? 0) <= $confidenceRating;
         })->values();
 
         // Use paged results for "data" (and remove _source_priority)
@@ -142,77 +142,77 @@ class SanctionEntitiyController extends Controller
 
         // Top N matches per source (map: source => [match1, match2] with nulls if missing)
         $bestBySourceMap = [];
-foreach ($wantedSources as $src) {
-    $top = $filtered
-        ->where('source', $src)
-        ->take($perSourceLimit)
-        ->values()
-        ->map(function ($r) {
-            unset($r['_source_priority']);
-            return $r;
-        })
-        ->all();
+        foreach ($wantedSources as $src) {
+            $top = $filtered
+                ->where('source', $src)
+                ->take($perSourceLimit)
+                ->values()
+                ->map(function ($r) {
+                    unset($r['_source_priority']);
+                    return $r;
+                })
+                ->all();
 
-    // ensure fixed size (always 1)
-    while (count($top) < $perSourceLimit) {
-        $top[] = null;
-    }
+            // ensure fixed size (always 1)
+            while (count($top) < $perSourceLimit) {
+                $top[] = null;
+            }
 
-    $bestBySourceMap[$src] = $top;
-}
+            $bestBySourceMap[$src] = $top;
+        }
 
-// Build list that ALWAYS contains all sources, sorted by best confidence (nulls last)
-$bestBySource = collect($wantedSources)
-    ->map(function ($src) use ($bestBySourceMap) {
-        $items = $bestBySourceMap[$src] ?? [null];
+        // Build list that ALWAYS contains all sources, sorted by best confidence (nulls last)
+        $bestBySource = collect($wantedSources)
+            ->map(function ($src) use ($bestBySourceMap) {
+                $items = $bestBySourceMap[$src] ?? [null];
 
-        // best confidence is from first item if exists
-        $bestConfidence = (is_array($items[0] ?? null) && isset($items[0]['confidence']))
-            ? (float) $items[0]['confidence']
-            : null;
+                // best confidence is from first item if exists
+                $bestConfidence = (is_array($items[0] ?? null) && isset($items[0]['confidence']))
+                    ? (float) $items[0]['confidence']
+                    : null;
 
-        return [
-            'source' => $src,
-            'best_confidence' => $bestConfidence,
-            'data' => $items, // [match1] (can be null)
-        ];
-    })
-    ->sort(function ($a, $b) {
-        $ac = $a['best_confidence'];
-        $bc = $b['best_confidence'];
+                return [
+                    'source' => $src,
+                    'best_confidence' => $bestConfidence,
+                    'data' => $items, // [match1] (can be null)
+                ];
+            })
+            ->sort(function ($a, $b) {
+                $ac = $a['best_confidence'];
+                $bc = $b['best_confidence'];
 
-        if ($ac === null && $bc === null) return 0;
-        if ($ac === null) return 1;
-        if ($bc === null) return -1;
+                if ($ac === null && $bc === null) return 0;
+                if ($ac === null) return 1;
+                if ($bc === null) return -1;
 
-        return $bc <=> $ac; // higher first
-    })
-    ->values();
+                return $bc <=> $ac; // higher first
+            })
+            ->values();
 
-$isMatch = $filtered->isNotEmpty();
+        $isMatch = $filtered->isNotEmpty();
 
-// Log screening via ScreeningLogController
-$logController = new ScreeningLogController();
-$logRequest = Request::create('/api/screening-logs', 'POST', [
-    'user_id' => $request->user()->id,
-    'search_string' => $searchName,
-    'screening_type' => $subjectTypeInput,
-    'is_match' => $isMatch,
-]);
-$logRequest->setUserResolver(fn () => $request->user());
-$logController->store($logRequest);
+        // Log screening via ScreeningLogController
+        $logController = new ScreeningLogController();
+        $logRequest = Request::create('/api/screening-logs', 'POST', [
+            'user_id' => $request->user()->id,
+            'search_string' => $searchName,
+            'screening_type' => $subjectTypeInput,
+            'is_match' => $isMatch,
+        ]);
+        $logRequest->setUserResolver(fn() => $request->user());
+        $logController->store($logRequest);
 
-return response()->json([
-    "status" => "success",
-    "message" => "Found screening results.",
-    "data" => [
-        'searched_for' => $searchName,
-        'confidence_threshold' => $confidenceRating,
-        'total_candidates' => $candidates->count(),
-        'filtered_results' => $filtered->count(),
-        'best_by_source' => $bestBySource,
-    ]
-]);
+        return response()->json([
+            "status" => "success",
+            "message" => "Found screening results.",
+            "data" => [
+                'searched_for' => $searchName,
+                'confidence_threshold' => $confidenceRating,
+                'total_candidates' => $candidates->count(),
+                'filtered_results' => $filtered->count(),
+                'best_by_source' => $bestBySource,
+            ]
+        ]);
     }
 
     private function weightsFor(string $subjectTypeInput): array

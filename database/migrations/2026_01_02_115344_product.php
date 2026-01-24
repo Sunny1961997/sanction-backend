@@ -22,6 +22,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->integer('stock')->nullable();
+            $table->integer('risk_level')->default(0);
             $table->boolean('is_active')->nullable();
 
             $table->timestamps();

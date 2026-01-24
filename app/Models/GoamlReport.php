@@ -11,6 +11,7 @@ class GoamlReport extends Model
 
     protected $fillable = [
         'user_id',
+        'company_information_id',
         'entity_reference',
         'transaction_type',
         'comments',
@@ -22,6 +23,7 @@ class GoamlReport extends Model
         'status_comments',
         'estimated_value',
         'currency_code',
+        'status',
     ];
 
     public function customer()

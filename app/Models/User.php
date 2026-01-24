@@ -52,4 +52,25 @@ class User extends Authenticatable
     {
         return $this->hasMany(CompanyUser::class, 'user_id');
     }
+    public function company()
+    {
+        return $this->hasOneThrough(
+            CompanyInformation::class,
+            CompanyUser::class,
+            'user_id',              // Foreign key on CompanyUser table
+            'id',                   // Foreign key on CompanyInformation table
+            'id',                   // Local key on User table
+            'company_information_id' // Local key on CompanyUser table
+        );
+    }
+
+    public function screeningLogs()
+    {
+        return $this->hasMany(ScreeningLog::class, 'user_id');
+    }
+
+    public function goamlReports()
+    {
+        return $this->hasMany(GoamlReport::class, 'user_id');
+    }
 }

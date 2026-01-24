@@ -16,6 +16,7 @@ class CreateGoamlReportsTable extends Migration
         Schema::create('goaml_reports', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('company_information_id')->constrained('company_information')->onDelete('cascade');
             $table->string('entity_reference')->nullable();
             $table->string('transaction_type')->nullable();
             $table->string('comments')->nullable();
@@ -27,6 +28,7 @@ class CreateGoamlReportsTable extends Migration
             $table->string('status_comments')->nullable();
             $table->decimal('estimated_value', 15, 2)->nullable();
             $table->string('currency_code')->nullable();
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

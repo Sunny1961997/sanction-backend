@@ -10,6 +10,7 @@ class ScreeningLog extends Model
 
     protected $fillable = [
         'user_id',
+        'company_information_id',
         'search_string',
         'screening_type',
         'is_match',

@@ -49,6 +49,8 @@ return new class extends Migration
             $table->string('issuing_country')->nullable();
             $table->date('id_issue_date')->nullable();
             $table->date('id_expiry_date')->nullable();
+            $table->integer('expected_no_of_transactions')->nullable();
+            $table->integer('expected_volume')->nullable();
 
             $table->timestamps();
         });

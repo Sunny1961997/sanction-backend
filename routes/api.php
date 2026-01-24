@@ -24,6 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/onboarding', [CustomerOnboardingController::class, 'store']);
     Route::get('/onboarding/customers', [CustomerOnboardingController::class, 'index']);
     Route::get('/onboarding/customers/{id}', [CustomerOnboardingController::class, 'show']);
+    Route::post('/onboarding/customers/{id}', [CustomerOnboardingController::class, 'update']);
+    Route::delete('/onboarding/customers/{id}', [CustomerOnboardingController::class, 'destroy']);
     Route::get('/onboarding/short-data-customers', [CustomerOnboardingController::class, 'shortDataCustomers']);
 
     // GOAML Reports
@@ -32,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/goaml-reports/{id}', [GoamlReportController::class, 'show']);
     Route::post('/goaml-reports', [GoamlReportController::class, 'store']);
     Route::put('/goaml-reports/{id}', [GoamlReportController::class, 'update']);
+    Route::delete('/goaml-reports/{id}', [GoamlReportController::class, 'destroy']);
 
     //Sanction Entities
     Route::get('/sanction-entities', [SanctionEntitiyController::class, 'index']);
@@ -55,4 +58,16 @@ Route::middleware('auth:sanctum')->group(function () {
     //user related
     Route::get('/company-users', [App\Http\Controllers\Api\UserController::class, 'allCompanyUsers']);
     Route::post('/users', [App\Http\Controllers\Api\UserController::class, 'store']);
+    Route::put('/users/change-password', [App\Http\Controllers\Api\UserController::class, 'changePassword']);
+    Route::get('/users/account-stats', [App\Http\Controllers\Api\ProfileController::class, 'accountStats']);
+
+    //Admin dashboard
+    Route::get('/admin/dashboard', [App\Http\Controllers\Api\AdminDashboard::class, 'index']);
+
+    //admin product
+    Route::resource('/admin/product', App\Http\Controllers\Api\AdminProductDashboard::class);
+
+
+    //Adverse search
+    Route::get('/adverse-search', [App\Http\Controllers\Api\AdverseMediaController::class, 'check']);
 });

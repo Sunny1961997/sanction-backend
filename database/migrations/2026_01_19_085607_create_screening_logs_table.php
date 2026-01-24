@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('screening_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('company_information_id')->constrained('company_information')->onDelete('cascade');
             $table->string('search_string');
             $table->string('screening_type')->default('individual'); // individual|entity|vessel
             $table->boolean('is_match')->default(false);

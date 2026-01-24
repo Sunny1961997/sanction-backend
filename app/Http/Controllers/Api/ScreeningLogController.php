@@ -15,12 +15,21 @@ class ScreeningLogController extends Controller
         $page = max(1, (int) $request->input('offset', 1));
         $skip = ($page - 1) * $limit;
 
-        $userId = $request->user()->id;
-        Log::info("Fetching screening logs for user_id: {$userId}");
+        $user = $request->user();
+        $company = $user->company;
 
-        $query = ScreeningLog::where('user_id', $userId)
-            ->with('user')
-            ->latest('screening_date');
+        $query = ScreeningLog::query();
+
+        if ($company) {
+            // Get all user IDs in this company
+            $companyUserIds = $company->users()->pluck('id');
+            $query->whereIn('user_id', $companyUserIds);
+        } else {
+            // Fallback: only current user's logs
+            $query->where('user_id', $user->id);
+        }
+
+        $query->latest('screening_date');
 
         // Optional filters
         if ($request->filled('screening_type')) {
@@ -56,6 +65,7 @@ class ScreeningLogController extends Controller
                 'total' => $total,
                 'limit' => $limit,
                 'offset' => $page,
+                'company' => $company ? ['id' => $company->id, 'name' => $company->name] : null,
             ]
         ]);
     }
@@ -65,6 +75,9 @@ class ScreeningLogController extends Controller
      */
     public function store(Request $request)
     {
+        $user = $request->user();
+        $company = $user->company;
+        Log::info('ScreeningLogController@store called by user id: ' . $user->id . ', company id: ' . ($company?->id ?? 'null'));
         $validated = $request->validate([
             'user_id' => 'required|integer|exists:users,id',
             'search_string' => 'required|string',
@@ -74,6 +87,7 @@ class ScreeningLogController extends Controller
 
         $log = ScreeningLog::create([
             'user_id' => $validated['user_id'],
+            'company_information_id' => $company?->id,
             'search_string' => $validated['search_string'],
             'screening_type' => $validated['screening_type'],
             'is_match' => $validated['is_match'],

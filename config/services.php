@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'google' => [
+        'api_key' => env('GOOGLE_API_KEY'),
+        'cx' => env('GOOGLE_CSE_ID'),
+    ],
 
 ];

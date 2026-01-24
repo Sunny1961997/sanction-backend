@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             // Ownership: Stores which user onboarded this customer
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('company_information_id')->constrained('company_information')->onDelete('cascade');
             
             // Type Discriminators
             $table->enum('customer_type', ['individual', 'corporate']);
