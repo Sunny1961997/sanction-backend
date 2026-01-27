@@ -51,10 +51,11 @@ class ImportUaeEntitiesJson extends Command
 
             // Raw Data
             $raw = json_encode($item, JSON_UNESCAPED_UNICODE);
+            $fileKey = strtolower(str_replace([' ', '.json'], ['_', ''], basename($path)));
 
             $mapped = [
                 'source' => 'UAE',
-                'source_record_id' => "uae:row:{$i}",
+                'source_record_id' => "uae:{$fileKey}:row:{$i}",
                 'source_reference' => null,
 
                 'subject_type' => 'entity',

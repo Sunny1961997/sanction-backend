@@ -221,6 +221,75 @@ class CustomerOnboardingController extends Controller
             return response()->json(['status' => false, 'message' => 'Customer not found'], 404);
         }
 
+        // Prepare risk calculation breakdown
+        $riskBreakdown = null;
+        $riskLevel = null;
+
+        if ($customer->customer_type === 'individual' && $customer->individualDetail) {
+            $ind = $customer->individualDetail;
+            $productIds = $customer->products->pluck('id')->toArray();
+            $country = $ind->nationality ?? null;
+            $occupation = $ind->occupation ?? null;
+            $sourceOfIncome = $ind->source_of_income ?? null;
+            $paymentMode = $ind->payment_mode ?? null;
+            $modeOfApproach = $ind->mode_of_approach ?? null;
+            $isPep = $ind->is_pep ?? null;
+
+            // Calculate each component
+            $geoScore = $this->riskCalculationService->calculateCountryRisk($country);
+            $productScore = $this->riskCalculationService->calculateProductRisk($productIds, $paymentMode, \App\Services\RiskCalculationService::PAYMENT_METHODS);
+            $channelScore = $this->riskCalculationService->getScoreFromList($modeOfApproach, \App\Services\RiskCalculationService::MODE_OF_APPROACH);
+            $occScore = $this->riskCalculationService->getScoreFromList($occupation, \App\Services\RiskCalculationService::OCCUPATION);
+            $soiScore = $this->riskCalculationService->getScoreFromList($sourceOfIncome, \App\Services\RiskCalculationService::SOURCE_OF_INCOME);
+            $pepScore = $isPep ? 4 : 1;
+            $customerAvg = ($occScore + $soiScore + $pepScore) / 3;
+
+            $riskLevel = ($customerAvg * 0.40) + ($geoScore * 0.25) + ($productScore * 0.20) + ($channelScore * 0.15);
+
+            $riskBreakdown = [
+                'customer_avg' => $customerAvg,
+                'customer_weighted' => $customerAvg * 0.40,
+                'geo_score' => $geoScore,
+                'geo_weighted' => $geoScore * 0.25,
+                'product_score' => $productScore,
+                'product_weighted' => $productScore * 0.20,
+                'channel_score' => $channelScore,
+                'channel_weighted' => $channelScore * 0.15,
+                'final_risk_level' => $riskLevel,
+            ];
+        } elseif ($customer->customer_type === 'corporate' && $customer->corporateDetail) {
+            $corp = $customer->corporateDetail;
+            $relatedPersons = $corp->relatedPersons ? $corp->relatedPersons->toArray() : [];
+            $businessActivity = $corp->business_activity ?? null;
+            $country = $corp->country_incorporated ?? null;
+            $productIds = $customer->products->pluck('id')->toArray();
+            $paymentMode = $corp->payment_mode ?? null;
+            $deliveryChannel = $corp->delivery_channel ?? null;
+
+            $ownershipScore = $this->riskCalculationService->ownershipRisk($relatedPersons);
+            $businessActivityScore = $this->riskCalculationService->getScoreFromList($businessActivity, \App\Services\RiskCalculationService::BUSINESS_ACTIVITIES);
+            $countryIncorporateScore = $this->riskCalculationService->getScoreFromList($country, \App\Services\RiskCalculationService::HIGH_RISK_COUNTRIES);
+            $productScore = $this->riskCalculationService->calculateProductRisk($productIds, $paymentMode, \App\Services\RiskCalculationService::PAYMENT_METHODS);
+            $channelScore = $this->riskCalculationService->getScoreFromList($deliveryChannel, \App\Services\RiskCalculationService::DELIVERY_CHANNEL);
+
+            $riskLevel = ($ownershipScore * 0.30) + ($businessActivityScore * 0.20) + ($countryIncorporateScore * 0.20) + ($productScore * 0.15) + ($channelScore * 0.15);
+
+            $riskBreakdown = [
+                'ownership_score' => $ownershipScore,
+                'ownership_weighted' => $ownershipScore * 0.30,
+                'business_activity_score' => $businessActivityScore,
+                'business_activity_weighted' => $businessActivityScore * 0.20,
+                'country_incorporate_score' => $countryIncorporateScore,
+                'country_incorporate_weighted' => $countryIncorporateScore * 0.20,
+                'product_score' => $productScore,
+                'product_weighted' => $productScore * 0.15,
+                'channel_score' => $channelScore,
+                'channel_weighted' => $channelScore * 0.15,
+                'final_risk_level' => $riskLevel,
+            ];
+        }
+        $customer->riskBreakdown = $riskBreakdown;
+
         return response()->json([
             'status' => true,
             'message' => 'Customer retrieved successfully',
@@ -291,7 +360,8 @@ class CustomerOnboardingController extends Controller
                 }
 
                 // Calculate risk level
-                $calculatedRiskLevel = $this->riskCalculationService->calculateRiskLevel($productIds, $country, $occupation, $sourceOfIncome, $paymentMode, $modeAfApproach, $isPep);
+                $calculatedRiskLevel = 1;
+                $payload['customer_type'] === 'individual' ? $calculatedRiskLevel = $this->riskCalculationService->calculateIndividualRiskLevel($productIds, $country, $occupation, $sourceOfIncome, $paymentMode, $modeAfApproach, $isPep) : $calculatedRiskLevel = $this->riskCalculationService->calculateCorporateRiskLevel($payload['corporate_related_persons'], $payload['corporate_details']['business_activity'], $payload['corporate_details']['country_incorporated'], $productIds, $paymentMode, $payload['corporate_details']['delivery_channel']);
                 
                 Log::info('Risk calculation', [
                     'country' => $country,
@@ -619,7 +689,7 @@ class CustomerOnboardingController extends Controller
                         $isPep = $ind['is_pep'];
                     }
                     // Log::info("result: ", $ind['occupation']);
-                    $calculatedRiskLevel = $this->riskCalculationService->calculateRiskLevel($productIds, $country, $occupation , $sourceOfIncome, $paymentMode, $modeAfApproach, $isPep );
+                    $calculatedRiskLevel = $this->riskCalculationService->calculateIndividualRiskLevel($productIds, $country, $occupation , $sourceOfIncome, $paymentMode, $modeAfApproach, $isPep );
                     
                     Log::info('Risk recalculation on update', [
                         'customer_id' => $id,

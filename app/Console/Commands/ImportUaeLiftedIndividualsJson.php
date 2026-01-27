@@ -42,7 +42,7 @@ class ImportUaeLiftedIndividualsJson extends Command
             if (!is_array($item) || count($item) === 0) continue;
 
             // Name
-            $name = $item['the name'] !== "None" ? $item['the name'] : $item['Full name (in Latin letters)'];
+            $name = ($item['the name'] !== "None" && $item['the name'] !== "") ? $item['the name'] : $item['Full name (in Latin letters)'];
 
             // Name (original script)
             $nameOriginalScript = $this->stringOrNull($item['Full name (in Arabic letters)'] ?? null);
@@ -78,10 +78,11 @@ class ImportUaeLiftedIndividualsJson extends Command
 
             // Raw Data
             $raw = json_encode($item, JSON_UNESCAPED_UNICODE);
+            $fileKey = strtolower(str_replace([' ', '.json'], ['_', ''], basename($path)));
 
             $mapped = [
                 'source' => 'UAE',
-                'source_record_id' => "uae:row:{$i}",
+                'source_record_id' => "uae:{$fileKey}:row:{$i}",
                 'source_reference' => null,
 
                 'subject_type' => 'individual',

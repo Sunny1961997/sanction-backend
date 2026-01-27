@@ -149,11 +149,23 @@ class SanctionEntitiyController extends Controller
                 ->values()
                 ->map(function ($r) {
                     unset($r['_source_priority']);
-                    return $r;
+                    // Fetch full ScreeningSubject model
+                    $subject = ScreeningSubject::find($r['id']);
+                    if (!$subject) return null;
+                    // Convert to array and remove 'row'
+                    $arr = $subject->toArray();
+                    unset($arr['raw']);
+                    // Merge scoring info with all model attributes except 'row'
+                    return array_merge(
+                        $arr,
+                        [
+                            'confidence' => $r['confidence'],
+                            'breakdown' => $r['breakdown'],
+                        ]
+                    );
                 })
                 ->all();
 
-            // ensure fixed size (always 1)
             while (count($top) < $perSourceLimit) {
                 $top[] = null;
             }
@@ -208,8 +220,8 @@ class SanctionEntitiyController extends Controller
             "data" => [
                 'searched_for' => $searchName,
                 'confidence_threshold' => $confidenceRating,
-                'total_candidates' => $candidates->count(),
-                'filtered_results' => $filtered->count(),
+                'total_search' => $candidates->count(),
+                'total_found' => $bestBySource->where('data', '!=', [null])->count(),
                 'best_by_source' => $bestBySource,
             ]
         ]);

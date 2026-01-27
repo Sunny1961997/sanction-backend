@@ -49,6 +49,7 @@ class CompanyController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'company_email' => 'required|string|email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20|unique:users',
             'company_name' => 'required|string|max:255',
@@ -67,6 +68,7 @@ class CompanyController extends Controller
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'country' => 'required|string|max:100',
+            'role' => 'required|string'
         ]);
 
         DB::beginTransaction();
@@ -77,7 +79,7 @@ class CompanyController extends Controller
                 'email' => $validated['email'],
                 'password' => bcrypt($validated['password']),
                 'phone' => $validated['phone'] ?? null,
-                'role' => 'Company Admin',
+                'role' => $validated['role'],
             ]);
 
             // 2) Create company information
